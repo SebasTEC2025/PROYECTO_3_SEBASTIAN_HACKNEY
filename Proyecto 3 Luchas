@@ -1,1 +1,23 @@
+#Proyecto 3 H y S
 
+#==================== Control de acceso ====================#
+# Entradas: un archivo y un texto
+# Salidas: un valor Booleano True o False
+# Restricciones: el texto ingresado se debe encontrar en el archivo creado
+
+def control_acceso(archivo,texto):
+    archivo = open("Acceso.txt","r", encoding = "utf-8")
+    for linea in archivo:
+        
+        linea = linea.strip()
+        elementos=linea.split(";")
+
+        if len(elementos) >= 3:
+            usuario=elementos[1].strip()
+            contra=elementos[2].strip()
+            if texto == [usuario,contra]:
+                archivo.close()
+                return True
+
+    archivo.close()
+    return False
