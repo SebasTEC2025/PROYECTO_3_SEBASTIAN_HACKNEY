@@ -559,21 +559,22 @@ class Inicio_Sesion:
 #===================#
 #metodos:
 #registrar_ganador(round_num,ganador)
+#realizar_lucha()
 #determinar_ganador()
 #===================#
 
 
 class Lucha:
     def __init__(self,nombre_alter_primero,nombre_alter_segundo):
-        if not isinstance(nombre_alter_primero,str) or not isinstance(nombre_alter_segundo,str):
+        if not isinstance(nombre_alter_primero,Luchador) or not isinstance(nombre_alter_segundo,Luchador):
             raise ValueError("Los nombres de los alter ego son str")
-        
         self.nombre_alter_primero=nombre_alter_primero
         self.nombre_alter_segundo=nombre_alter_segundo
-        self.ganador_round_1=""
-        self.ganador_round_2=""
-        self.ganador_round_3=""
-        self.ganador_lucha=""
+        self.ganador_round_1=None
+        self.ganador_round_2=None
+        self.ganador_round_3=None
+        self.ganador_lucha=None
+        self.nombre_torneo=None
 
     def registrar_ganador(self,round_num,ganador):
         if round_num == 1:
@@ -583,24 +584,39 @@ class Lucha:
         if round_num == 3:
             self.ganador_round_3=ganador
 
+    def realizar_lucha(self):
+        for round_num in range(1,4):
+            stads_elegidos =random.sample(list(self.luchador.stats.keys()),8)
+            puntos_peleador1=sum(self.nombre_alter_primero.stats[stat] for stat in stads_elegidos)
+            puntos_peleador2=sum(self.nombre_alter_segundo.stats[stat] for stat in stads_elegidos)
+
+            if puntos_peleador1 > puntos_peleador2:
+                self.registrar_ganador(round_num,self.nombre_alter_primero.alter_ego)
+            
+            if puntos_peleador2 > puntos_peleador1:
+                self.registrar_ganador(round_num,self.nombre_alter_segundo.alter_ego)
+
+        self.determinar_ganador()
+            
+
     def determinar_ganador(self):
         primero_victorias= 0
         segundo_victorias=0
 
         for ganador in[self.ganador_round_1,self.ganador_round_2,self.ganador_round_3]:
             
-            if ganador == self.nombre_alter_primero:
+            if ganador == self.nombre_alter_primero.alter_ego:
                 primero_victorias +=1
-            elif ganador == self.nombre_alter_segundo:
+            elif ganador == self.nombre_alter_segundo.alter_ego:
                 segundo_victorias +=1
 
         if primero_victorias > segundo_victorias:
-            self.ganador_lucha = self.nombre_alter_primero
+            self.ganador_lucha = self.nombre_alter_primero.alter_ego
             
         elif segundo_victorias > primero_victorias:
-            self.ganador_lucha = self.nombre_alter_segundo
+            self.ganador_lucha = self.nombre_alter_segundo.alter_ego
         else:
-            self.ganador_lucha == "Empate"
+            self.ganador_lucha ="Empate"
 
 
 # Punto de entrada principal
