@@ -1,23 +1,553 @@
 #Proyecto 3 H y S
+import tkinter as tk
+from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
+import os
+import random
 
-#==================== Control de acceso ====================#
-# Entradas: un archivo y un texto
-# Salidas: un valor Booleano True o False
-# Restricciones: el texto ingresado se debe encontrar en el archivo creado
+# Constante con el orden de las estadísticas
+ESTADISTICAS = [
+    "Velocidad", "Fuerza", "Inteligencia", "Defensa", "Magia",
+    "Telepatía", "Estratega", "Volar", "Elasticidad", "Regeneración"
+]
 
-def control_acceso(archivo,texto):
-    archivo = open("Acceso.txt","r", encoding = "utf-8")
-    for linea in archivo:
+class Luchador:
+    """Clase que representa un superhéroe o villano con sus características y habilidades."""
+    
+    def __init__(self, tipo, genero, nombre_real, alter_ego, stats, foto=None):
+        """
+        Inicializa un nuevo luchador con sus atributos básicos y estadísticas.
         
-        linea = linea.strip()
-        elementos=linea.split(";")
+        Args:
+            tipo (str): 'Héroe' o 'Villano'
+            genero (str): 'Hombre', 'Mujer' o 'No determinado'
+            nombre_real (str): Nombre civil del personaje
+            alter_ego (str): Nombre de héroe/villano (debe ser único)
+            stats (dict): Diccionario con las 10 estadísticas
+            foto (str, optional): Ruta de la imagen del personaje. Defaults to None.
+        """
+        self.tipo = tipo
+        self.genero = genero
+        self.nombre_real = nombre_real
+        self.alter_ego = alter_ego
+        self.foto = foto
+        self.stats = stats
+        self.victorias = 0
+        self.derrotas = 0
+    
+    def calcular_poder_total(self):
+        """Calcula la suma total de todas las estadísticas del personaje."""
+        return sum(self.stats.values())
+    
+    def luchar_contra(self, oponente):
+        """
+        Simula un combate contra otro luchador.
+        
+        Args:
+            oponente (Luchador): El personaje contra el que se lucha
+            
+        Returns:
+            tuple: (victoria: bool, mensaje: str)
+        """
+        poder_self = self.calcular_poder_total() * random.uniform(0.9, 1.1)
+        poder_oponente = oponente.calcular_poder_total() * random.uniform(0.9, 1.1)
+        
+        if poder_self > poder_oponente:
+            self.victorias += 1
+            oponente.derrotas += 1
+            return (True, f"{self.alter_ego} derrotó a {oponente.alter_ego}!")
+        else:
+            self.derrotas += 1
+            oponente.victorias += 1
+            return (False, f"{oponente.alter_ego} derrotó a {self.alter_ego}!")
 
-        if len(elementos) >= 3:
-            usuario=elementos[1].strip()
-            contra=elementos[2].strip()
-            if texto == [usuario,contra]:
-                archivo.close()
-                return True
+class CreadorPersonajes:
+    """Clase para la interfaz gráfica de creación de nuevos personajes."""
+    
+    def __init__(self, root, callback_guardar):
+        """
+        Inicializa la ventana de creación de personajes.
+        
+        Args:
+            root (tk.Tk): Ventana principal
+            callback_guardar (function): Función a llamar después de guardar
+        """
+        self.root = root
+        self.root.title("Crear Personaje")
+        self.root.geometry("900x700")
+        self.callback_guardar = callback_guardar
+        
+        # Variables de control para Tkinter
+        self.tipo_var = tk.StringVar(value="Héroe")
+        self.genero_var = tk.StringVar(value="Hombre")
+        self.nombre_real_var = tk.StringVar()
+        self.alter_ego_var = tk.StringVar()
+        
+        # Variables para las estadísticas (todas incluidas)
+        self.stats_vars = {
+            "Velocidad": tk.IntVar(value=0),
+            "Fuerza": tk.IntVar(value=0),
+            "Inteligencia": tk.IntVar(value=0),
+            "Defensa": tk.IntVar(value=0),
+            "Magia": tk.IntVar(value=0),
+            "Telepatía": tk.IntVar(value=0),
+            "Estratega": tk.IntVar(value=0),
+            "Volar": tk.IntVar(value=0),
+            "Elasticidad": tk.IntVar(value=0),
+            "Regeneración": tk.IntVar(value=0)
+        }
+        
+        self.total_var = tk.StringVar(value="Total: 0")
+        self.icono_path = None
+        
+        self.crear_interfaz()
+    
+    def crear_interfaz(self):
+        """Construye todos los elementos de la interfaz gráfica."""
+        # Frame principal
+        main_frame = tk.Frame(self.root, padx=20, pady=20)
+        main_frame.pack(expand=True, fill=tk.BOTH)
+        
+        # Frame izquierdo (datos básicos)
+        left_frame = tk.Frame(main_frame, width=300)
+        left_frame.pack(side=tk.LEFT, fill=tk.Y, padx=10)
+        
+        # Frame derecho (stats)
+        right_frame = tk.Frame(main_frame)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10)
+        
+        # --- Sección de datos básicos ---
+        tk.Label(left_frame, text="Datos Básicos", font=("Arial", 12, "bold")).pack(pady=10)
+        
+        # Selector de tipo (Héroe/Villano)
+        tk.Label(left_frame, text="Tipo:").pack(anchor=tk.W)
+        tipo_combobox = ttk.Combobox(left_frame, textvariable=self.tipo_var, 
+                                   values=["Héroe", "Villano"], state="readonly")
+        tipo_combobox.pack(fill=tk.X, pady=5)
+        
+        # Selector de género
+        tk.Label(left_frame, text="Género:").pack(anchor=tk.W)
+        genero_combobox = ttk.Combobox(left_frame, textvariable=self.genero_var, 
+                                     values=["Hombre", "Mujer", "No determinado"], state="readonly")
+        genero_combobox.pack(fill=tk.X, pady=5)
+        
+        # Campos para nombres
+        tk.Label(left_frame, text="Nombre Real:").pack(anchor=tk.W)
+        tk.Entry(left_frame, textvariable=self.nombre_real_var).pack(fill=tk.X, pady=5)
+        
+        tk.Label(left_frame, text="Alter Ego:").pack(anchor=tk.W)
+        tk.Entry(left_frame, textvariable=self.alter_ego_var).pack(fill=tk.X, pady=5)
+        
+        # Botón para verificar nombre
+        tk.Button(left_frame, text="Verificar Nombre", command=self.verificar_nombre,
+                bg="#4CAF50", fg="white").pack(pady=10, fill=tk.X)
+        
+        # --- Sección de estadísticas ---
+        tk.Label(right_frame, text="Estadísticas", font=("Arial", 12, "bold")).pack(pady=10)
+        
+        # Contador total
+        self.total_label = tk.Label(right_frame, textvariable=self.total_var, 
+                                  font=("Arial", 10))
+        self.total_label.pack()
+        
+        # Sliders para cada estadística (todas las 10)
+        for stat in ESTADISTICAS:
+            var = self.stats_vars[stat]
+            frame = tk.Frame(right_frame)
+            frame.pack(fill=tk.X, pady=5)
+            
+            tk.Label(frame, text=f"{stat}:", width=12, anchor=tk.W).pack(side=tk.LEFT)
+            
+            # Slider para ajustar el valor
+            slider = tk.Scale(frame, from_=0, to=100, orient=tk.HORIZONTAL, 
+                            variable=var, command=self.actualizar_total,
+                            length=300)
+            slider.pack(side=tk.LEFT, expand=True, fill=tk.X)
+            
+            # Mostrar valor numérico
+            tk.Label(frame, textvariable=var, width=3).pack(side=tk.LEFT)
+        
+        # Botón para seleccionar icono
+        self.btn_icono = tk.Button(right_frame, text="Seleccionar Icono", 
+                                  command=self.seleccionar_icono, state=tk.DISABLED)
+        self.btn_icono.pack(pady=10)
+        
+        # Vista previa del icono
+        self.lbl_icono = tk.Label(right_frame)
+        self.lbl_icono.pack()
+        
+        # Botón para guardar
+        self.btn_guardar = tk.Button(right_frame, text="Crear Personaje", 
+                                   command=self.guardar_personaje, state=tk.DISABLED,
+                                   bg="#FF5722", fg="white", font=("Arial", 10, "bold"))
+        self.btn_guardar.pack(pady=20)
+    
+    def verificar_nombre(self):
+        """Verifica que el Alter Ego no esté repetido."""
+        alter_ego = self.alter_ego_var.get().strip()
+        
+        if not alter_ego:
+            messagebox.showwarning("Error", "Debe ingresar un Alter Ego")
+            return
+        
+        if self.nombre_existe(alter_ego):
+            messagebox.showerror("Error", "Este Alter Ego ya existe")
+        else:
+            messagebox.showinfo("Éxito", "Nombre disponible!")
+            self.btn_icono.config(state=tk.NORMAL)
+    
+    def actualizar_total(self, _=None):
+        """Actualiza el contador de puntos totales y verifica límites."""
+        total = sum(var.get() for var in self.stats_vars.values())
+        self.total_var.set(f"Total: {total}")
+        
+        # Cambiar color si se excede
+        if total > 100:
+            self.total_label.config(fg="red")
+            self.btn_guardar.config(state=tk.DISABLED)
+        else:
+            self.total_label.config(fg="black")
+            self.btn_guardar.config(state=tk.NORMAL if total > 0 and self.icono_path else tk.DISABLED)
+    
+    def seleccionar_icono(self):
+        """Abre el selector de iconos desde la carpeta ICONOS."""
+        iconos_dir = "ICONOS"
+        if not os.path.exists(iconos_dir):
+            os.makedirs(iconos_dir)
+            messagebox.showinfo("Info", "Carpeta ICONOS creada. Agregue imágenes PNG.")
+            return
+        
+        iconos = [f for f in os.listdir(iconos_dir) if f.lower().endswith('.png')]
+        if not iconos:
+            messagebox.showwarning("Error", "No hay iconos en la carpeta ICONOS")
+            return
+        
+        # Crear ventana de selección
+        top = tk.Toplevel(self.root)
+        top.title("Seleccionar Icono")
+        top.geometry("600x500")
+        
+        # Configurar scroll
+        canvas = tk.Canvas(top)
+        scrollbar = tk.Scrollbar(top, orient="vertical", command=canvas.yview)
+        frame = tk.Frame(canvas)
+        
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        canvas.create_window((0, 0), window=frame, anchor="nw")
+        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        
+        # Mostrar miniaturas
+        cols = 4
+        for i, icono in enumerate(iconos):
+            img_path = os.path.join(iconos_dir, icono)
+            try:
+                img = Image.open(img_path)
+                img.thumbnail((120, 120))
+                photo = ImageTk.PhotoImage(img)
+                
+                btn = tk.Button(frame, image=photo, 
+                              command=lambda p=img_path: self.seleccionar_icono_callback(p, top))
+                btn.image = photo
+                btn.grid(row=i//cols, column=i%cols, padx=5, pady=5)
+            except Exception as e:
+                print(f"Error cargando icono: {e}")
+    
+    def seleccionar_icono_callback(self, path, top):
+        """Maneja la selección de un icono."""
+        self.icono_path = path
+        try:
+            img = Image.open(path)
+            img.thumbnail((150, 150))
+            photo = ImageTk.PhotoImage(img)
+            self.lbl_icono.config(image=photo)
+            self.lbl_icono.image = photo
+            top.destroy()
+            self.actualizar_total()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo cargar el icono: {e}")
+    
+    def guardar_personaje(self):
+        """Guarda el nuevo personaje en el archivo."""
+        # Validar datos
+        if not all([self.nombre_real_var.get(), self.alter_ego_var.get(), self.icono_path]):
+            messagebox.showwarning("Error", "Complete todos los campos")
+            return
+        
+        # Obtener valores
+        tipo = "H" if self.tipo_var.get() == "Héroe" else "V"
+        genero = self.genero_var.get()[0]  # Primera letra (H/M/N)
+        nombre_real = self.nombre_real_var.get()
+        alter_ego = self.alter_ego_var.get()
+        stats = {k: v.get() for k, v in self.stats_vars.items()}
+        
+        # Guardar en archivo
+        with open("personajes.txt", "a") as f:
+            stats_str = ",".join(str(stats[k]) for k in ESTADISTICAS)
+            f.write(f"{tipo},{genero},{nombre_real},{alter_ego},{stats_str}\n")
+        
+        # Copiar icono
+        iconos_pj_dir = "ICONOS_PERSONAJES"
+        if not os.path.exists(iconos_pj_dir):
+            os.makedirs(iconos_pj_dir)
+        
+        try:
+            with Image.open(self.icono_path) as img:
+                img.save(os.path.join(iconos_pj_dir, f"{alter_ego}.png"))
+        except Exception as e:
+            messagebox.showwarning("Advertencia", f"No se pudo guardar el icono: {e}")
+        
+        messagebox.showinfo("Éxito", "Personaje creado correctamente!")
+        self.callback_guardar()
+        self.root.destroy()
+    
+    def nombre_existe(self, alter_ego):
+        """Verifica si el Alter Ego ya existe en el archivo."""
+        if not os.path.exists("personajes.txt"):
+            return False
+            
+        with open("personajes.txt", "r") as f:
+            for linea in f:
+                datos = linea.strip().split(",")
+                if len(datos) > 3 and datos[3].lower() == alter_ego.lower():
+                    return True
+        return False
 
-    archivo.close()
-    return False
+class SistemaTorneos:
+    """Clase principal que gestiona el sistema completo de torneos."""
+    
+    def __init__(self, root):
+        """
+        Inicializa el sistema principal.
+        
+        Args:
+            root (tk.Tk): Ventana principal de la aplicación
+        """
+        self.root = root
+        self.root.title("Sistema de Torneos")
+        self.root.geometry("800x600")
+        
+        self.personajes = self.cargar_personajes()
+        self.torneos = []
+        
+        self.mostrar_menu_principal()
+    
+    def cargar_personajes(self):
+        """Carga los personajes desde el archivo personajes.txt."""
+        personajes = []
+        if os.path.exists("personajes.txt"):
+            with open("personajes.txt", "r") as f:
+                for linea in f:
+                    datos = linea.strip().split(",")
+                    if len(datos) >= 14:  # 4 campos + 10 stats
+                        stats = {k: int(v) for k, v in zip(ESTADISTICAS, datos[4:14])}
+                        personajes.append(Luchador(
+                            tipo="Héroe" if datos[0] == "H" else "Villano",
+                            genero={"H": "Hombre", "M": "Mujer", "N": "No determinado"}.get(datos[1], "No determinado"),
+                            nombre_real=datos[2],
+                            alter_ego=datos[3],
+                            stats=stats,
+                            foto=os.path.join("ICONOS_PERSONAJES", f"{datos[3]}.png") if os.path.exists(os.path.join("ICONOS_PERSONAJES", f"{datos[3]}.png")) else None
+                        ))
+        return personajes
+    
+    def mostrar_menu_principal(self):
+        """Muestra el menú principal con las 4 opciones."""
+        # Limpiar ventana
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        # Marco principal
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack(expand=True)
+        
+        # Título
+        tk.Label(frame, text="MENÚ PRINCIPAL", font=("Arial", 16, "bold")).pack(pady=20)
+        
+        # Botones de opciones
+        opciones = [
+            ("1. Crear Personajes", self.menu_personajes),
+            ("2. Torneos", lambda: None),  # Función vacía
+            ("3. Jugar Torneo", lambda: None),  # Función vacía
+            ("4. Estadísticas", lambda: None)  # Función vacía
+        ]
+        
+        for texto, comando in opciones:
+            tk.Button(
+                frame,
+                text=texto,
+                command=comando,
+                width=25,
+                height=2
+            ).pack(pady=10)
+    
+    def menu_personajes(self):
+        """Muestra el submenú de gestión de personajes."""
+        # Limpiar ventana
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        # Marco principal
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack(expand=True)
+        
+        # Título
+        tk.Label(frame, text="GESTIÓN DE PERSONAJES", font=("Arial", 16, "bold")).pack(pady=20)
+        
+        # Botones de opciones
+        tk.Button(
+            frame,
+            text="Crear Nuevo Personaje",
+            command=self.crear_personaje,
+            width=25,
+            height=2
+        ).pack(pady=10)
+        
+        tk.Button(
+            frame,
+            text="Listar Personajes",
+            command=self.listar_personajes,
+            width=25,
+            height=2
+        ).pack(pady=10)
+        
+        tk.Button(
+            frame,
+            text="Volver al Menú Principal",
+            command=self.mostrar_menu_principal,
+            width=25,
+            height=2
+        ).pack(pady=20)
+    
+    def crear_personaje(self):
+        """Abre la ventana de creación de personajes."""
+        top = tk.Toplevel(self.root)
+        CreadorPersonajes(top, self.actualizar_personajes)
+    
+    def actualizar_personajes(self):
+        """Actualiza la lista de personajes después de crear uno nuevo."""
+        self.personajes = self.cargar_personajes()
+    
+    def listar_personajes(self):
+        """Muestra una ventana con la lista de todos los personajes."""
+        top = tk.Toplevel(self.root)
+        top.title("Lista de Personajes")
+        top.geometry("600x400")
+        
+        frame = tk.Frame(top)
+        frame.pack(expand=True, fill=tk.BOTH)
+        
+        scrollbar = tk.Scrollbar(frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        lista = tk.Listbox(frame, yscrollcommand=scrollbar.set)
+        lista.pack(expand=True, fill=tk.BOTH)
+        
+        scrollbar.config(command=lista.yview)
+        
+        for p in self.personajes:
+            lista.insert(tk.END, f"{p.alter_ego} ({'Héroe' if p.tipo == 'H' else 'Villano'}) - Poder: {p.calcular_poder_total()}")
+
+class Inicio_Sesion:
+    """Clase que maneja el sistema de login y registro de usuarios."""
+    
+    def __init__(self, root):
+        """
+        Inicializa la ventana de login.
+        
+        Args:
+            root (tk.Tk): Ventana principal
+        """
+        self.root = root
+        self.root.title("Sistema de Login")
+        self.root.geometry("400x300")
+        
+        if not os.path.exists("contraseñas.txt"):
+            self.crear_archivo_por_defecto()
+        
+        self.crear_widgets_login()
+    
+    def crear_archivo_por_defecto(self):
+        """Crea el archivo de contraseñas con usuarios por defecto."""
+        with open("contraseñas.txt", "w", encoding="utf-8") as f:
+            f.write("Sebas,Seb,1234\n")
+            f.write("Hackney Hac,1234\n")
+            f.write("admin,admin,admin\n")
+    
+    def crear_widgets_login(self):
+        """Crea los widgets de la interfaz de login."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        self.frame = tk.Frame(self.root, padx=20, pady=20)
+        self.frame.pack(expand=True)
+        
+        tk.Label(self.frame, text="INICIO DE SESIÓN", font=("Arial", 14, "bold")).grid(row=0, columnspan=2, pady=10)
+        
+        tk.Label(self.frame, text="Usuario:").grid(row=1, column=0, sticky="w", pady=5)
+        self.usuario_entry = tk.Entry(self.frame)
+        self.usuario_entry.grid(row=1, column=1, pady=5)
+        
+        tk.Label(self.frame, text="Contraseña:").grid(row=2, column=0, sticky="w", pady=5)
+        self.contra_entry = tk.Entry(self.frame, show="*")
+        self.contra_entry.grid(row=2, column=1, pady=5)
+        
+        tk.Button(self.frame, text="Ingresar", command=self.validar_login).grid(row=3, columnspan=2, pady=10)
+    
+    def validar_login(self):
+        """Valida las credenciales ingresadas por el usuario."""
+        usuario = self.usuario_entry.get()
+        contra = self.contra_entry.get()
+        
+        if not usuario or not contra:
+            messagebox.showwarning("Error", "Debe ingresar usuario y contraseña")
+            return
+        
+        with open("contraseñas.txt", "r", encoding="utf-8") as f:
+            for linea in f:
+                datos = linea.strip().split(",")
+                if len(datos) == 3:
+                    nombre, user, password = datos
+                    if user == usuario and password == contra:
+                        self.mostrar_bienvenida(nombre)
+                        return
+        
+        messagebox.showerror("Error", "Usuario o contraseña incorrectos")
+    
+    def mostrar_bienvenida(self, nombre):
+        """Muestra la pantalla de bienvenida después del login."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack(expand=True)
+        
+        tk.Label(
+            frame, 
+            text=f"¡Bienvenido/a {nombre}!", 
+            font=("Arial", 16, "bold"),
+            fg="blue"
+        ).pack(pady=20)
+        
+        tk.Button(
+            frame,
+            text="Continuar al Menú Principal",
+            command=self.abrir_sistema_torneos,
+            width=20,
+            height=2
+        ).pack(pady=20)
+    
+    def abrir_sistema_torneos(self):
+        """Inicia el sistema principal de torneos."""
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        SistemaTorneos(self.root)
+
+# Punto de entrada principal
+if __name__ == "__main__":
+    root = tk.Tk()
+    sesion = Inicio_Sesion(root)
+    root.mainloop()
