@@ -370,7 +370,7 @@ class SistemaTorneos:
         opciones = [
             ("1. Crear Personajes", self.menu_personajes),
             ("2. Torneos", lambda: None),  # Función vacía
-            ("3. Jugar Torneo", lambda: None),  # Función vacía
+            ("3. Jugar Torneo", self.opciones_torneo),  # Función vacía
             ("4. Estadísticas", lambda: None)  # Función vacía
         ]
         
@@ -382,7 +382,40 @@ class SistemaTorneos:
                 width=25,
                 height=2
             ).pack(pady=10)
-    
+
+    def opciones_torneo(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        frame = tk.Frame(self.root,padx=20,pady=20)
+        frame.pack(expand=True)
+
+        tk.Label(frame, text="Seleccione una Opcion", font=("Arial", 16, "bold")).pack(pady=20)
+
+        tk.Button(
+            frame,
+            text="Crear Torneo",
+            command=self.mostrar_menu_principal,
+            width=25,
+            height=2,
+            ).pack(pady=10)
+
+        tk.Button(
+            frame,
+            text="Seleccionar Torneo",
+            command=self.mostrar_menu_principal,
+            width=25,
+            height=2,
+            ).pack(pady=10)
+
+        tk.Button(
+            frame,
+            text="Regresar",
+            command=self.mostrar_menu_principal,
+            width=25,
+            height=2,
+            ).pack(pady=20)
+
     def menu_personajes(self):
         """Muestra el submenú de gestión de personajes."""
         # Limpiar ventana
