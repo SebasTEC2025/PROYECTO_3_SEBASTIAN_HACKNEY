@@ -545,6 +545,63 @@ class Inicio_Sesion:
             widget.destroy()
         
         SistemaTorneos(self.root)
+        
+#===================#
+#Nombre: Lucha
+#===================#
+#atributos:
+#nombre_alter_primero
+#nombre_alter_segundo)
+#ganador_round_1
+#ganador_round_2
+#ganador_round_3
+#ganador_lucha
+#===================#
+#metodos:
+#registrar_ganador(round_num,ganador)
+#determinar_ganador()
+#===================#
+
+
+class Lucha:
+    def __init__(self,nombre_alter_primero,nombre_alter_segundo):
+        if not isinstance(nombre_alter_primero,str) or not isinstance(nombre_alter_segundo,str):
+            raise ValueError("Los nombres de los alter ego son str")
+        
+        self.nombre_alter_primero=nombre_alter_primero
+        self.nombre_alter_segundo=nombre_alter_segundo
+        self.ganador_round_1=""
+        self.ganador_round_2=""
+        self.ganador_round_3=""
+        self.ganador_lucha=""
+
+    def registrar_ganador(self,round_num,ganador):
+        if round_num == 1:
+            self.ganador_round_1=ganador
+        if round_num == 2:
+            self.ganador_round_2=ganador
+        if round_num == 3:
+            self.ganador_round_3=ganador
+
+    def determinar_ganador(self):
+        primero_victorias= 0
+        segundo_victorias=0
+
+        for ganador in[self.ganador_round_1,self.ganador_round_2,self.ganador_round_3]:
+            
+            if ganador == self.nombre_alter_primero:
+                primero_victorias +=1
+            elif ganador == self.nombre_alter_segundo:
+                segundo_victorias +=1
+
+        if primero_victorias > segundo_victorias:
+            self.ganador_lucha = self.nombre_alter_primero
+            
+        elif segundo_victorias > primero_victorias:
+            self.ganador_lucha = self.nombre_alter_segundo
+        else:
+            self.ganador_lucha == "Empate"
+
 
 # Punto de entrada principal
 if __name__ == "__main__":
