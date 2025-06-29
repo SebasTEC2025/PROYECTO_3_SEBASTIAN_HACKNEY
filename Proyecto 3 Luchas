@@ -12,6 +12,25 @@ ESTADISTICAS = [
     "Telepatía", "Estratega", "Volar", "Elasticidad", "Regeneración"
 ]
 
+#===================#
+#Nombre: Luchador
+#===================#
+#atributos:
+#tipo
+#genero
+#nombre_real
+#alter_ego
+#stats
+#foto
+#victorias
+#derrotas
+#estadisticas
+#===================#
+#métodos:
+#calcular_poder_total
+#luchar_contra(oponente)
+#===================# 
+
 class Luchador:
     def __init__(self, tipo, genero, nombre_real, alter_ego, stats, foto=None):
         self.tipo = tipo
