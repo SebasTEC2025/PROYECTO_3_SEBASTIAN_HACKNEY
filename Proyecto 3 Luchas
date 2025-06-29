@@ -250,7 +250,899 @@ class CreadorPersonajes:
                     return True
         return False
 
-[Clase Torneo pendiente]
+#===================#
+#Nombre: SistemasTorneos
+#===================#
+#atributos:
+#root
+#personajes
+#torneos
+#mostrar_menu_principal
+#===================#
+#métodos:
+#cargar_personajes()
+#actualizar_personajes()
+#actualizar_archivo_torneos()
+#mostrar_menu_principal()
+#menu_personajes()
+#abrir_creador_personajes()
+#listar_personajes()
+#mostrar_detalle_personaje()
+#mostrar_pantalla_borrado()
+#confirmar_borrado()
+#opciones_torneo()
+#mostrar_pantalla_borrado_torneos()
+#pantalla_crear_torneo_datos()
+#pantalla_crear_torneo_cantidad(nombre, fecha, lugar)
+#pantalla_seleccion_bando(nombre, fecha, lugar, cantidad, modo)
+#pantalla_seleccion_iconos(nombre, fecha, lugar, cantidad, modo, bando, manual)
+#pantalla_seleccion_iconos_otro_bando(nombre, fecha, lugar, cantidad, modo, seleccionados_primero, candidatos)
+#crear_torneo_final(nombre, fecha, lugar, cantidad, modo, heroes_sel, villanos_sel)
+#jugar_torneo()
+#_jugar_torneo_interactivo(torneo)
+#_jugar_siguiente_lucha()
+#_mostrar_round()
+#_mostrar_resumen_torneo()
+#mostrar_estadisticas()
+#===================#  
+
+class SistemaTorneos:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Sistema de Torneos")
+        self.root.geometry("800x600")
+        self.personajes = self.cargar_personajes()
+        self.torneos = []
+        self.mostrar_menu_principal()
+
+    def cargar_personajes(self):
+        personajes = []
+        if os.path.exists("personajes.txt"):
+            with open("personajes.txt", "r") as f:
+                for linea in f:
+                    datos = linea.strip().split(",")
+                    if len(datos) >= 14:
+                        stats = {k: int(v) for k, v in zip(ESTADISTICAS, datos[4:14])}
+                        personajes.append(Luchador(
+                            tipo="Héroe" if datos[0] == "H" else "Villano",
+                            genero={"H": "Hombre", "M": "Mujer", "N": "No determinado"}.get(datos[1], "No determinado"),
+                            nombre_real=datos[2],
+                            alter_ego=datos[3],
+                            stats=stats,
+                            foto=os.path.join("ICONOS_PERSONAJES", f"{datos[3]}.png") if os.path.exists(os.path.join("ICONOS_PERSONAJES", f"{datos[3]}.png")) else None
+                        ))
+        return personajes
+
+    def actualizar_personajes(self):
+        self.personajes = self.cargar_personajes()
+
+    def actualizar_archivo_torneos(self):
+        with open("torneos_config.txt", "w", encoding="utf-8") as f:
+            for torneo in self.torneos:
+                f.write(torneo.resumen_txt())
+
+    def mostrar_menu_principal(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack(expand=True)
+        tk.Label(frame, text="MENÚ PRINCIPAL", font=("Arial", 16, "bold")).pack(pady=20)
+        opciones = [
+            ("1. Crear Personajes", self.menu_personajes),
+            ("2. Torneos", self.opciones_torneo),
+            ("3. Jugar Torneo", self.jugar_torneo),
+            ("4. Estadísticas", self.mostrar_estadisticas)
+        ]
+        for texto, comando in opciones:
+            tk.Button(
+                frame,
+                text=texto,
+                command=comando,
+                width=25,
+                height=2
+            ).pack(pady=10)
+
+    def menu_personajes(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack(expand=True)
+        tk.Label(frame, text="GESTIÓN DE PERSONAJES", font=("Arial", 16, "bold")).pack(pady=20)
+        tk.Button(
+            frame,
+            text="Crear Nuevo Personaje",
+            command=self.abrir_creador_personajes,
+            width=25,
+            height=2
+        ).pack(pady=10)
+        tk.Button(
+            frame,
+            text="Listar Personajes",
+            command=self.listar_personajes,
+            width=25,
+            height=2
+        ).pack(pady=10)
+        tk.Button(
+            frame,
+            text="Eliminar Personaje",
+            command=self.mostrar_pantalla_borrado,
+            width=25,
+            height=2,
+            bg="#ff4444",
+            fg="white"
+        ).pack(pady=10)
+        tk.Button(
+            frame,
+            text="Volver al Menú Principal",
+            command=self.mostrar_menu_principal,
+            width=25,
+            height=2
+        ).pack(pady=20)
+
+    def abrir_creador_personajes(self):
+        top = tk.Toplevel(self.root)
+        CreadorPersonajes(top, self.actualizar_personajes)
+
+    def listar_personajes(self):
+        top = tk.Toplevel(self.root)
+        top.title("Lista de Personajes")
+        top.geometry("900x600")
+        main_frame = tk.Frame(top)
+        main_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        list_frame = tk.Frame(main_frame, width=200)
+        list_frame.pack(side=tk.LEFT, fill=tk.Y)
+        detail_frame = tk.Frame(main_frame, bd=2, relief="groove")
+        detail_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10)
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.personajes_listbox = tk.Listbox(
+            list_frame,
+            yscrollcommand=scrollbar.set,
+            font=("Arial", 10),
+            width=25
+        )
+        self.personajes_listbox.pack(expand=True, fill=tk.BOTH)
+        scrollbar.config(command=self.personajes_listbox.yview)
+        self.detail_icon = tk.Label(detail_frame, width=150, height=150, bd=2, relief="solid")
+        self.detail_icon.pack(pady=10)
+        self.detail_text = tk.Text(
+            detail_frame,
+            wrap=tk.WORD,
+            font=("Arial", 10),
+            height=20,
+            state="disabled"
+        )
+        self.detail_text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        for p in self.personajes:
+            self.personajes_listbox.insert(tk.END, p.alter_ego)
+        self.personajes_listbox.bind("<<ListboxSelect>>", self.mostrar_detalle_personaje)
+
+    def mostrar_detalle_personaje(self, event):
+        selection = self.personajes_listbox.curselection()
+        if not selection:
+            return
+        index = selection[0]
+        personaje = self.personajes[index]
+        if personaje.foto and os.path.exists(personaje.foto):
+            try:
+                img = Image.open(personaje.foto)
+                img = img.resize((150, 150), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                self.detail_icon.config(image=photo)
+                self.detail_icon.image = photo
+            except Exception as e:
+                self.detail_icon.config(image='', text="Icono no disponible")
+        else:
+            self.detail_icon.config(image='', text="Sin icono")
+        self.detail_text.config(state="normal")
+        self.detail_text.delete(1.0, tk.END)
+        detalles = (
+            f"Alter Ego: {personaje.alter_ego}\n"
+            f"Tipo: {personaje.tipo}\n"
+            f"Género: {personaje.genero}\n"
+            f"Nombre Real: {personaje.nombre_real}\n\n"
+            "ESTADÍSTICAS:\n"
+        )
+        for stat in ESTADISTICAS:
+            detalles += f"- {stat}: {personaje.stats[stat]}\n"
+        self.detail_text.insert(tk.END, detalles)
+        self.detail_text.config(state="disabled")
+
+    def mostrar_pantalla_borrado(self):
+        top = tk.Toplevel(self.root)
+        top.title("Eliminar Personaje")
+        top.geometry("900x600")
+        main_frame = tk.Frame(top, padx=20, pady=20)
+        main_frame.pack(expand=True, fill=tk.BOTH)
+        tk.Label(
+            main_frame,
+            text="SELECCIONE EL PERSONAJE A ELIMINAR",
+            font=("Arial", 14, "bold"),
+            fg="red"
+        ).pack(pady=10)
+        list_frame = tk.Frame(main_frame)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        scrollbar = tk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.lista_borrado = tk.Listbox(
+            list_frame,
+            yscrollcommand=scrollbar.set,
+            font=("Arial", 12),
+            selectmode=tk.SINGLE
+        )
+        self.lista_borrado.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.lista_borrado.yview)
+        for p in self.personajes:
+            self.lista_borrado.insert(tk.END, f"{p.alter_ego} ({p.tipo})")
+        btn_frame = tk.Frame(main_frame)
+        btn_frame.pack(pady=20)
+        tk.Button(
+            btn_frame,
+            text="ELIMINAR SELECCIONADO",
+            command=lambda: self.confirmar_borrado(top),
+            bg="#ff4444",
+            fg="white",
+            font=("Arial", 12, "bold"),
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=10)
+        tk.Button(
+            btn_frame,
+            text="CANCELAR",
+            command=top.destroy,
+            bg="#cccccc",
+            font=("Arial", 12),
+            padx=20,
+            pady=10
+        ).pack(side=tk.LEFT, padx=10)
+
+    def confirmar_borrado(self, top):
+        seleccion = self.lista_borrado.curselection()
+        if not seleccion:
+            messagebox.showwarning("Advertencia", "Selecciona un personaje primero")
+            return
+        index = seleccion[0]
+        personaje = self.personajes[index]
+        confirmacion = messagebox.askyesno(
+            "Confirmar borrado",
+            f"¿Estás seguro de querer eliminar a {personaje.alter_ego}?\nEsta acción no se puede deshacer.",
+            icon="warning"
+        )
+        if confirmacion:
+            try:
+                if os.path.exists("personajes.txt"):
+                    with open("personajes.txt", "r") as f:
+                        lineas = f.readlines()
+                    with open("personajes.txt", "w") as f:
+                        for linea in lineas:
+                            datos = linea.strip().split(",")
+                            if len(datos) > 3 and datos[3].lower() != personaje.alter_ego.lower():
+                                f.write(linea)
+                self.actualizar_personajes()
+                messagebox.showinfo("Éxito", f"{personaje.alter_ego} fue eliminado")
+                top.destroy()
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo eliminar: {str(e)}")
+
+    def opciones_torneo(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        frame = tk.Frame(self.root, padx=20, pady=20)
+        frame.pack(expand=True)
+        tk.Label(frame, text="OPCIONES DE TORNEO", font=("Arial", 16, "bold")).pack(pady=20)
+        tk.Button(
+            frame,
+            text="Crear Torneo",
+            command=self.pantalla_crear_torneo_datos,
+            width=25,
+            height=2,
+        ).pack(pady=10)
+        tk.Button(
+            frame,
+            text="Eliminar Torneo",
+            command=self.mostrar_pantalla_borrado_torneos,
+            width=25,
+            height=2,
+            bg="#ff4444",
+            fg="white"
+        ).pack(pady=10)
+        tk.Button(
+            frame,
+            text="Regresar",
+            command=self.mostrar_menu_principal,
+            width=25,
+            height=2,
+        ).pack(pady=20)
+
+    def mostrar_pantalla_borrado_torneos(self):
+        top = tk.Toplevel(self.root)
+        top.title("Eliminar Torneo")
+        top.geometry("600x400")
+        tk.Label(top, text="SELECCIONE EL TORNEO A ELIMINAR", font=("Arial", 14, "bold"), fg="red").pack(pady=10)
+        frame_lista = tk.Frame(top)
+        frame_lista.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        scrollbar = tk.Scrollbar(frame_lista)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        lista_torneos = tk.Listbox(
+            frame_lista, yscrollcommand=scrollbar.set,
+            font=("Arial", 12), selectmode=tk.SINGLE
+        )
+        lista_torneos.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=lista_torneos.yview)
+        
+        for torneo in self.torneos:
+            lista_torneos.insert(tk.END, f"{torneo.nombre} - {torneo.fecha}")
+        btn_frame = tk.Frame(top)
+        btn_frame.pack(pady=20)
+
+        
+        def eliminar():
+            
+            seleccion = lista_torneos.curselection()
+            if not seleccion:
+                messagebox.showwarning("Advertencia", "Selecciona un torneo primero")
+                return
+            idx = seleccion[0]
+            torneo_eliminar = self.torneos[idx]
+            confirmacion = messagebox.askyesno(
+                "Confirmar borrado",
+                f"¿Estás seguro de querer eliminar el torneo '{torneo_eliminar.nombre}'?\nEsta acción no se puede deshacer.",
+                icon="warning"
+            )
+            if confirmacion:
+                self.torneos.pop(idx)
+                self.actualizar_archivo_torneos()
+                messagebox.showinfo("Éxito", f"Torneo '{torneo_eliminar.nombre}' fue eliminado")
+                top.destroy()
+        tk.Button(
+            btn_frame, text="ELIMINAR TORNEO", command=eliminar,
+            bg="#ff4444", fg="white", font=("Arial", 12, "bold"),
+            padx=20, pady=10
+        ).pack(side=tk.LEFT, padx=10)
+        tk.Button(
+            btn_frame, text="CANCELAR", command=top.destroy,
+            bg="#cccccc", font=("Arial", 12),
+            padx=20, pady=10
+        ).pack(side=tk.LEFT, padx=10)
+
+    def pantalla_crear_torneo_datos(self):
+        
+        top = tk.Toplevel(self.root)
+        top.title("Datos del Torneo")
+        top.geometry("400x300")
+        self.nombre_torneo_var = tk.StringVar()
+        self.fecha_torneo_var = tk.StringVar(value=datetime.now().strftime("%d/%m/%Y"))
+        self.lugar_torneo_var = tk.StringVar()
+        frame = tk.Frame(top, padx=20, pady=20)
+        frame.pack(expand=True)
+
+        
+        tk.Label(frame, text="Nombre del Torneo:").pack(anchor="w")
+        tk.Entry(frame, textvariable=self.nombre_torneo_var).pack(fill=tk.X, pady=5)
+        tk.Label(frame, text="Fecha (DD/MM/AAAA):").pack(anchor="w")
+        tk.Entry(frame, textvariable=self.fecha_torneo_var).pack(fill=tk.X, pady=5)
+        tk.Label(frame, text="Lugar:").pack(anchor="w")
+        tk.Entry(frame, textvariable=self.lugar_torneo_var).pack(fill=tk.X, pady=5)
+        
+        def siguiente():
+            nombre = self.nombre_torneo_var.get().strip()
+            fecha = self.fecha_torneo_var.get().strip()
+            lugar = self.lugar_torneo_var.get().strip()
+            
+            if not nombre or not fecha or not lugar:
+                messagebox.showwarning("Error", "Complete todos los campos")
+                return
+            
+            top.destroy()
+            self.pantalla_crear_torneo_cantidad(nombre, fecha, lugar)
+        tk.Button(frame, text="Siguiente", command=siguiente, bg="#4CAF50", fg="white").pack(pady=20)
+
+    def pantalla_crear_torneo_cantidad(self, nombre, fecha, lugar):
+        
+        top = tk.Toplevel(self.root)
+        top.title("Cantidad de Luchas y Modo")
+        top.geometry("400x250")
+        self.num_luchas_var = tk.IntVar(value=1)
+        self.modo_torneo_var = tk.StringVar(value=MODOS_TORNEO[0])
+        frame = tk.Frame(top, padx=20, pady=20)
+        frame.pack(expand=True)
+        
+        tk.Label(frame, text="Cantidad de luchas (1-5):").pack(anchor="w")
+        tk.Spinbox(frame, from_=1, to=5, textvariable=self.num_luchas_var, width=5).pack(anchor="w", pady=5)
+        tk.Label(frame, text="Modo de torneo:").pack(anchor="w")
+        
+        modo_combo = ttk.Combobox(frame, textvariable=self.modo_torneo_var, values=MODOS_TORNEO, state="readonly")
+        modo_combo.pack(anchor="w", pady=5)
+
+        
+        def siguiente():
+            cantidad = self.num_luchas_var.get()
+            modo = self.modo_torneo_var.get()
+            top.destroy()
+            self.pantalla_seleccion_bando(nombre, fecha, lugar, cantidad, modo)
+        tk.Button(frame, text="Siguiente", command=siguiente, bg="#4CAF50", fg="white").pack(pady=20)
+
+    def pantalla_seleccion_bando(self, nombre, fecha, lugar, cantidad, modo):
+        if modo == "Programa vs Programa":
+            heroes = [p for p in self.personajes if p.tipo == "Héroe"]
+            villanos = [p for p in self.personajes if p.tipo == "Villano"]
+            if len(heroes) < cantidad or len(villanos) < cantidad:
+                messagebox.showwarning("Error", "No hay suficientes personajes.")
+                return
+            heroes_sel = random.sample(heroes, cantidad)
+            villanos_sel = random.sample(villanos, cantidad)
+            self.crear_torneo_final(nombre, fecha, lugar, cantidad, modo, heroes_sel, villanos_sel)
+            return
+        if modo == "Persona vs Programa":
+            top = tk.Toplevel(self.root)
+            top.title("Selecciona tu Bando")
+            top.geometry("320x200")
+            bando_var = tk.StringVar(value="Héroe")
+            tk.Label(top, text="¿Con qué bando deseas jugar?").pack(pady=20)
+            tk.Radiobutton(top, text="Héroes", variable=bando_var, value="Héroe").pack()
+            tk.Radiobutton(top, text="Villanos", variable=bando_var, value="Villano").pack()
+            def siguiente():
+                bando = bando_var.get()
+                top.destroy()
+                self.pantalla_seleccion_iconos(nombre, fecha, lugar, cantidad, modo, bando)
+            tk.Button(top, text="Siguiente", command=siguiente, bg="#4CAF50", fg="white").pack(pady=20)
+        else:
+            self.pantalla_seleccion_iconos(nombre, fecha, lugar, cantidad, modo, manual=True)
+
+    def pantalla_seleccion_iconos(self, nombre, fecha, lugar, cantidad, modo, bando=None, manual=False):
+        top = tk.Toplevel(self.root)
+        top.title("Seleccionar Participantes")
+        top.geometry("1000x420")
+        if manual or (modo == "Persona vs Programa" and bando == "Héroe"):
+            candidatos = [p for p in self.personajes if p.tipo == "Héroe"]
+            label_text = "Selecciona tus HÉROES"
+            otro_bando = [p for p in self.personajes if p.tipo == "Villano"]
+        else:
+            candidatos = [p for p in self.personajes if p.tipo == "Villano"]
+            label_text = "Selecciona tus VILLANOS"
+            otro_bando = [p for p in self.personajes if p.tipo == "Héroe"]
+        tk.Label(top, text=label_text, font=("Arial", 16, "bold")).pack(pady=12)
+        slots_frame = tk.Frame(top)
+        slots_frame.pack(pady=5)
+        slot_vars = [tk.StringVar() for _ in range(cantidad)]
+        slot_imgs = [{} for _ in range(cantidad)]
+        def select_in_slot(slot_idx, alter_ego):
+            slot_vars[slot_idx].set(alter_ego)
+            for widget in slots_frame.grid_slaves(row=slot_idx):
+                if hasattr(widget, "alter_ego") and widget.alter_ego == alter_ego:
+                    widget.config(bd=4, relief="solid", highlightbackground="blue", highlightthickness=2)
+                elif hasattr(widget, "alter_ego"):
+                    widget.config(bd=2, relief="ridge", highlightthickness=0)
+        for idx in range(cantidad):
+            tk.Label(slots_frame, text=f"Slot {idx+1}", font=("Arial", 12)).grid(row=idx, column=0, sticky="e", pady=2)
+            col = 1
+            for personaje in candidatos:
+                try:
+                    img = Image.open(personaje.foto)
+                    img = img.resize((60, 60), Image.Resampling.LANCZOS)
+                    photo = ImageTk.PhotoImage(img)
+                except:
+                    photo = None
+                icon = tk.Label(slots_frame, image=photo, bd=2, relief="ridge", cursor="hand2")
+                icon.image = photo
+                icon.alter_ego = personaje.alter_ego
+                icon.grid(row=idx, column=col, padx=4, pady=2)
+                slot_imgs[idx][personaje.alter_ego] = photo
+                icon.bind("<Button-1>", lambda e, i=idx, a=personaje.alter_ego: select_in_slot(i, a))
+                icon.bind("<Enter>", lambda e, txt=personaje.alter_ego: e.widget.config(relief="raised"))
+                icon.bind("<Leave>", lambda e: e.widget.config(relief="ridge"))
+                col += 1
+        def iniciar_torneo_callback():
+            seleccionados = [v.get() for v in slot_vars]
+            if "" in seleccionados or len(set(seleccionados)) != cantidad:
+                messagebox.showwarning("Error", "Debes seleccionar un personaje diferente por cada slot.")
+                return
+            seleccionados_obj = [next(p for p in candidatos if p.alter_ego == alter_ego) for alter_ego in seleccionados]
+            if manual:
+                def seleccion_otro_bando():
+                    top.destroy()
+                    self.pantalla_seleccion_iconos_otro_bando(nombre, fecha, lugar, cantidad, modo, seleccionados_obj, otro_bando)
+                seleccion_otro_bando()
+            else:
+                resto = [p for p in otro_bando if p.alter_ego not in seleccionados]
+                if len(resto) < cantidad:
+                    messagebox.showwarning("Error", "No hay suficientes rivales disponibles.")
+                    return
+                seleccionados_otro = random.sample(resto, cantidad)
+                top.destroy()
+                if modo == "Persona vs Programa":
+                    if bando == "Héroe":
+                        heroes_sel = seleccionados_obj
+                        villanos_sel = seleccionados_otro
+                    else:
+                        heroes_sel = seleccionados_otro
+                        villanos_sel = seleccionados_obj
+                else:
+                    heroes_sel = seleccionados_obj if candidatos[0].tipo == "Héroe" else seleccionados_otro
+                    villanos_sel = seleccionados_otro if candidatos[0].tipo == "Héroe" else seleccionados_obj
+                self.crear_torneo_final(nombre, fecha, lugar, cantidad, modo, heroes_sel, villanos_sel)
+        tk.Button(top, text="Iniciar Torneo", command=iniciar_torneo_callback, bg="#4CAF50", fg="white", font=("Arial", 12)).pack(pady=12)
+
+    def pantalla_seleccion_iconos_otro_bando(self, nombre, fecha, lugar, cantidad, modo, seleccionados_primero, candidatos):
+        top = tk.Toplevel(self.root)
+        top.title("Selecciona el segundo bando")
+        top.geometry("1000x420")
+        bando = "Villanos" if candidatos[0].tipo == "Villano" else "Héroes"
+        tk.Label(top, text=f"Selecciona tus {bando}", font=("Arial", 16, "bold")).pack(pady=12)
+        slots_frame = tk.Frame(top)
+        slots_frame.pack(pady=5)
+        slot_vars = [tk.StringVar() for _ in range(cantidad)]
+        slot_imgs = [{} for _ in range(cantidad)]
+        
+        def select_in_slot(slot_idx, alter_ego):
+            slot_vars[slot_idx].set(alter_ego)
+            for widget in slots_frame.grid_slaves(row=slot_idx):
+                if hasattr(widget, "alter_ego") and widget.alter_ego == alter_ego:
+                    widget.config(bd=4, relief="solid", highlightbackground="blue", highlightthickness=2)
+                elif hasattr(widget, "alter_ego"):
+                    widget.config(bd=2, relief="ridge", highlightthickness=0)
+                    
+        for idx in range(cantidad):
+            tk.Label(slots_frame, text=f"Slot {idx+1}", font=("Arial", 12)).grid(row=idx, column=0, sticky="e", pady=2)
+            col = 1
+            for personaje in candidatos:
+                try:
+                    img = Image.open(personaje.foto)
+                    img = img.resize((60, 60), Image.Resampling.LANCZOS)
+                    photo = ImageTk.PhotoImage(img)
+                except:
+                    photo = None
+                icon = tk.Label(slots_frame, image=photo, bd=2, relief="ridge", cursor="hand2")
+                icon.image = photo
+                icon.alter_ego = personaje.alter_ego
+                icon.grid(row=idx, column=col, padx=4, pady=2)
+                slot_imgs[idx][personaje.alter_ego] = photo
+                icon.bind("<Button-1>", lambda e, i=idx, a=personaje.alter_ego: select_in_slot(i, a))
+                icon.bind("<Enter>", lambda e, txt=personaje.alter_ego: e.widget.config(relief="raised"))
+                icon.bind("<Leave>", lambda e: e.widget.config(relief="ridge"))
+                col += 1
+        def iniciar_torneo_callback():
+            seleccionados = [v.get() for v in slot_vars]
+            if "" in seleccionados or len(set(seleccionados)) != cantidad:
+                messagebox.showwarning("Error", "Debes seleccionar un personaje diferente por cada slot.")
+                return
+            seleccionados_otro = [next(p for p in candidatos if p.alter_ego == alter_ego) for alter_ego in seleccionados]
+            top.destroy()
+            if candidatos[0].tipo == "Héroe":
+                self.crear_torneo_final(nombre, fecha, lugar, cantidad, "Manual", seleccionados_otro, seleccionados_primero)
+            else:
+                self.crear_torneo_final(nombre, fecha, lugar, cantidad, "Manual", seleccionados_primero, seleccionados_otro)
+        tk.Button(top, text="Iniciar Torneo", command=iniciar_torneo_callback, bg="#4CAF50", fg="white", font=("Arial", 12)).pack(pady=12)
+
+    def crear_torneo_final(self, nombre, fecha, lugar, cantidad, modo, heroes_sel, villanos_sel):
+        # Aquí deberías implementar la lógica para crear y guardar el torneo en self.torneos
+        messagebox.showinfo("Torneo creado", f"Torneo '{nombre}' creado con {cantidad} luchas en modo {modo}.")
+        # Ejemplo simple para agregar el torneo a la lista:
+        torneo = Torneo(nombre, fecha, lugar, heroes_sel, villanos_sel, [], modo)
+        self.torneos.append(torneo)
+        self.actualizar_archivo_torneos()
+        self.mostrar_menu_principal()
+
+    def jugar_torneo(self):
+        if not self.torneos:
+            messagebox.showwarning("Advertencia", "No hay torneos creados")
+            return
+
+        top = tk.Toplevel(self.root)
+        top.title("Seleccionar Torneo")
+        top.geometry("600x400")
+        tk.Label(top, text="SELECCIONE UN TORNEO", font=("Arial", 14, "bold")).pack(pady=10)
+        frame_lista = tk.Frame(top)
+        frame_lista.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        scrollbar = tk.Scrollbar(frame_lista)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        lista_torneos = tk.Listbox(
+            frame_lista, yscrollcommand=scrollbar.set,
+            font=("Arial", 12), selectmode=tk.SINGLE
+        )
+        lista_torneos.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=lista_torneos.yview)
+        for torneo in self.torneos:
+            lista_torneos.insert(tk.END, f"{torneo.nombre} - {torneo.fecha}")
+        btn_frame = tk.Frame(top)
+        btn_frame.pack(pady=20)
+
+        def iniciar():
+            seleccion = lista_torneos.curselection()
+            if not seleccion:
+                messagebox.showwarning("Advertencia", "Selecciona un torneo primero")
+                return
+            idx = seleccion[0]
+            torneo = self.torneos[idx]
+            top.destroy()
+            self._jugar_torneo_interactivo(torneo)
+
+        tk.Button(
+            btn_frame, text="INICIAR TORNEO", command=iniciar,
+            bg="#4CAF50", fg="white", font=("Arial", 12, "bold"),
+            padx=20, pady=10
+        ).pack(side=tk.LEFT, padx=10)
+        tk.Button(
+            btn_frame, text="CANCELAR", command=top.destroy,
+            bg="#f44336", fg="white", font=("Arial", 12),
+            padx=20, pady=10
+        ).pack(side=tk.LEFT, padx=10)
+
+    def jugar_torneo(self):
+        if not self.torneos:
+            messagebox.showwarning("Advertencia", "No hay torneos creados")
+            return
+
+        # Selección de torneo
+        top = tk.Toplevel(self.root)
+        top.title("Seleccionar Torneo")
+        top.geometry("600x400")
+        tk.Label(top, text="SELECCIONE UN TORNEO", font=("Arial", 14, "bold")).pack(pady=10)
+        frame_lista = tk.Frame(top)
+        frame_lista.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        scrollbar = tk.Scrollbar(frame_lista)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        lista_torneos = tk.Listbox(frame_lista, yscrollcommand=scrollbar.set, font=("Arial", 12), selectmode=tk.SINGLE)
+        lista_torneos.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=lista_torneos.yview)
+        for torneo in self.torneos:
+            lista_torneos.insert(tk.END, f"{torneo.nombre} - {torneo.fecha}")
+        btn_frame = tk.Frame(top)
+        btn_frame.pack(pady=20)
+
+        def iniciar():
+            seleccion = lista_torneos.curselection()
+            if not seleccion:
+                messagebox.showwarning("Advertencia", "Selecciona un torneo primero")
+                return
+            idx = seleccion[0]
+            torneo = self.torneos[idx]
+            top.destroy()
+            self._jugar_torneo_interactivo(torneo)
+
+        tk.Button(btn_frame, text="INICIAR TORNEO", command=iniciar, bg="#4CAF50", fg="white", font=("Arial", 12, "bold"), padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+        tk.Button(btn_frame, text="CANCELAR", command=top.destroy, bg="#f44336", fg="white", font=("Arial", 12), padx=20, pady=10).pack(side=tk.LEFT, padx=10)
+
+    def _jugar_torneo_interactivo(self, torneo):
+        self._torneo_juego_estado = {
+            "torneo": torneo,
+            "luchas_torneo": [],
+            "resultados": [],
+            "lucha_idx": 0,
+            "round_idx": 0,
+            "round_win_heroe": 0,
+            "round_win_villano": 0,
+            "stats_usados": [],
+            "heroe": None,
+            "villano": None,
+            "victorias_heroes": 0,
+            "victorias_villanos": 0,
+        }
+
+        # Generar lista de luchas
+        if torneo.luchas and isinstance(torneo.luchas[0], dict):
+            self._torneo_juego_estado["luchas_torneo"] = torneo.luchas
+        else:
+            self._torneo_juego_estado["luchas_torneo"] = []
+            for i in range(min(len(torneo.heroes), len(torneo.villanos))):
+                self._torneo_juego_estado["luchas_torneo"].append({"heroe": torneo.heroes[i], "villano": torneo.villanos[i]})
+
+        self._torneo_juego_estado["resultados"] = []
+        self._jugar_siguiente_lucha()
+
+    def _jugar_siguiente_lucha(self):
+        estado = self._torneo_juego_estado
+        idx = estado["lucha_idx"]
+        luchas_torneo = estado["luchas_torneo"]
+
+        if idx >= len(luchas_torneo):
+            # Guardar resumen torneo
+            torneo = estado["torneo"]
+            with open("Torneos.txt", "a", encoding="utf-8") as f:
+                f.write(f"'{torneo.nombre}','{torneo.fecha}','{torneo.lugar}',{len(luchas_torneo)},{estado['victorias_heroes']},{estado['victorias_villanos']}\n")
+            self._mostrar_resumen_torneo()
+            return
+
+        # Preparar la siguiente lucha
+        lucha = luchas_torneo[idx]
+        estado["heroe"] = lucha["heroe"]
+        estado["villano"] = lucha["villano"]
+        estado["round_idx"] = 0
+        estado["round_win_heroe"] = 0
+        estado["round_win_villano"] = 0
+        estado["stats_usados"] = random.sample(ESTADISTICAS, 3)
+        estado["rounds_resultados"] = []
+        self._mostrar_round()
+
+    def _mostrar_round(self):
+        estado = self._torneo_juego_estado
+        round_idx = estado["round_idx"]
+
+        if round_idx >= 3:
+            # Determinar ganador de la lucha
+            if estado["round_win_heroe"] > estado["round_win_villano"]:
+                ganador = estado["heroe"].alter_ego
+                estado["victorias_heroes"] += 1
+            elif estado["round_win_villano"] > estado["round_win_heroe"]:
+                ganador = estado["villano"].alter_ego
+                estado["victorias_villanos"] += 1
+            else:
+                ganador = "Empate"
+
+            # Guardar resultado de la lucha final
+            with open("Luchas.txt", "a", encoding="utf-8") as f:
+                f.write(f"{estado['heroe'].alter_ego},{estado['villano'].alter_ego},FINAL,{ganador},{estado['torneo'].nombre}\n")
+
+            # Guardar para tabla final
+            estado["resultados"].append({
+                "heroe": estado["heroe"],
+                "villano": estado["villano"],
+                "heroe_icon": estado["heroe"].foto,
+                "villano_icon": estado["villano"].foto,
+                "ganador": ganador,
+                "rounds": list(estado["rounds_resultados"])  # copia
+            })
+
+            # Siguiente lucha
+            estado["lucha_idx"] += 1
+            self._jugar_siguiente_lucha()
+            return
+
+        # Jugar round actual
+        stat = estado["stats_usados"][round_idx]
+        valor_heroe = estado["heroe"].stats[stat]
+        valor_villano = estado["villano"].stats[stat]
+        if valor_heroe > valor_villano:
+            ganador = estado["heroe"].alter_ego
+            estado["round_win_heroe"] += 1
+        elif valor_heroe < valor_villano:
+            ganador = estado["villano"].alter_ego
+            estado["round_win_villano"] += 1
+        else:
+            ganador = "Empate"
+
+        # Guardar resultado del round
+        with open("Luchas.txt", "a", encoding="utf-8") as f:
+            f.write(f"{estado['heroe'].alter_ego},{estado['villano'].alter_ego},#{round_idx+1},{ganador},{estado['torneo'].nombre}\n")
+
+        estado["rounds_resultados"].append({
+            "round": round_idx+1,
+            "stat": stat,
+            "valor_heroe": valor_heroe,
+            "valor_villano": valor_villano,
+            "ganador": ganador,
+        })
+
+        # Ventana de round con iconos
+        win = tk.Toplevel(self.root)
+        win.title(f"Lucha {estado['lucha_idx']+1} - Round {round_idx+1}")
+        frame = tk.Frame(win, padx=20, pady=20)
+        frame.pack()
+
+        # Iconos
+        for i, (pj, icon_path, label) in enumerate([
+            (estado["heroe"], estado["heroe"].foto, "HÉROE"),
+            (estado["villano"], estado["villano"].foto, "VILLANO")
+        ]):
+            col = i * 2
+            if icon_path and os.path.exists(icon_path):
+                img = Image.open(icon_path)
+                img = img.resize((120, 120), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                lbl = tk.Label(frame, image=photo)
+                lbl.image = photo
+                lbl.grid(row=0, column=col, padx=30)
+            else:
+                tk.Label(frame, text="Sin icono", width=15, height=8, relief="solid").grid(row=0, column=col, padx=30)
+            tk.Label(frame, text=f"{label}\n{pj.alter_ego}", font=("Arial", 12, "bold")).grid(row=1, column=col)
+            tk.Label(frame, text=f"{pj.nombre_real}", font=("Arial", 10, "italic")).grid(row=2, column=col)
+
+        # Stat y resultado
+        tk.Label(frame, text=f"ROUND {round_idx+1} - Stat: {stat}", font=("Arial", 14, "bold")).grid(row=3, column=0, columnspan=4, pady=10)
+        tk.Label(frame, text=f"{estado['heroe'].alter_ego}: {valor_heroe}", font=("Arial", 12)).grid(row=4, column=0)
+        tk.Label(frame, text=f"{estado['villano'].alter_ego}: {valor_villano}", font=("Arial", 12)).grid(row=4, column=2)
+        tk.Label(frame, text=f"Ganador de este round: {ganador}", font=("Arial", 13, "bold"), fg="green").grid(row=5, column=0, columnspan=4, pady=10)
+
+        def siguiente():
+            win.destroy()
+            estado["round_idx"] += 1
+            self._mostrar_round()
+        tk.Button(frame, text="Ver siguiente round", command=siguiente, font=("Arial",12), bg="#4CAF50", fg="white").grid(row=6, column=0, columnspan=4, pady=12)
+
+    def _mostrar_resumen_torneo(self):
+        
+        # Mostrar resumen final: tabla de luchas, iconos y resultados, estadísticas finales
+        estado = self._torneo_juego_estado
+        resultados = estado["resultados"]
+        top = tk.Toplevel(self.root)
+        top.title("Resumen del Torneo")
+        top.geometry("1050x500")
+        frame = tk.Frame(top, padx=10, pady=10)
+        frame.pack(expand=True, fill=tk.BOTH)
+
+        tk.Label(frame, text="Resumen del Torneo", font=("Arial", 16, "bold")).pack(pady=10)
+        torneo = estado["torneo"]
+        tk.Label(frame, text=f"Torneo: {torneo.nombre} — Fecha: {torneo.fecha} — Lugar: {torneo.lugar}", font=("Arial", 11, "italic")).pack()
+
+        # Tabla de luchas
+        tabla = tk.Frame(frame)
+        tabla.pack(pady=20)
+        headers = ["#", "Icono Héroe", "Héroe", "Icono Villano", "Villano", "Ganador", "Detalles de Rounds"]
+        for col, h in enumerate(headers):
+            tk.Label(tabla, text=h, font=("Arial", 10, "bold"), borderwidth=1, relief="ridge", width=18).grid(row=0, column=col, sticky="nsew")
+        for i, r in enumerate(resultados):
+            # Iconos
+            col = 0
+            tk.Label(tabla, text=str(i+1), borderwidth=1, relief="ridge").grid(row=i+1, column=col, sticky="nsew")
+            col += 1
+            for pj, icon_path in [(r["heroe"], r["heroe_icon"]), (r["villano"], r["villano_icon"])]:
+                if icon_path and os.path.exists(icon_path):
+                    img = Image.open(icon_path)
+                    img = img.resize((50, 50), Image.Resampling.LANCZOS)
+                    photo = ImageTk.PhotoImage(img)
+                    lbl = tk.Label(tabla, image=photo, borderwidth=1, relief="ridge")
+                    lbl.image = photo
+                    lbl.grid(row=i+1, column=col, sticky="nsew")
+                else:
+                    tk.Label(tabla, text="Sin icono", borderwidth=1, relief="ridge", width=8, height=3).grid(row=i+1, column=col, sticky="nsew")
+                col += 2 if col == 1 else 1
+            # Nombres
+            tk.Label(tabla, text=r["heroe"].alter_ego, borderwidth=1, relief="ridge").grid(row=i+1, column=2, sticky="nsew")
+            tk.Label(tabla, text=r["villano"].alter_ego, borderwidth=1, relief="ridge").grid(row=i+1, column=4, sticky="nsew")
+            # Ganador
+            tk.Label(tabla, text=r["ganador"], borderwidth=1, relief="ridge").grid(row=i+1, column=5, sticky="nsew")
+            # Detalle rounds
+            detalle = ""
+            for roundinfo in r["rounds"]:
+                detalle += f"R{roundinfo['round']}:{roundinfo['stat']} ({roundinfo['valor_heroe']}-{roundinfo['valor_villano']}: {roundinfo['ganador']})  "
+            tk.Label(tabla, text=detalle, borderwidth=1, relief="ridge", wraplength=270, justify="left").grid(row=i+1, column=6, sticky="nsew")
+
+        # Estadísticas finales
+        stats_frame = tk.Frame(frame)
+        stats_frame.pack(pady=15)
+        tk.Label(stats_frame, text=f"Victorias Héroes: {estado['victorias_heroes']}", font=("Arial", 11, "bold"), fg="blue").pack(side=tk.LEFT, padx=30)
+        tk.Label(stats_frame, text=f"Victorias Villanos: {estado['victorias_villanos']}", font=("Arial", 11, "bold"), fg="red").pack(side=tk.LEFT, padx=30)
+        ganador_final = "¡HÉROES!" if estado["victorias_heroes"] > estado["victorias_villanos"] else "¡VILLANOS!" if estado["victorias_villanos"] > estado["victorias_heroes"] else "¡EMPATE!"
+        tk.Label(stats_frame, text=f"GANADOR DEL TORNEO: {ganador_final}", font=("Arial", 13, "bold"), fg="green").pack(side=tk.LEFT, padx=30)
+
+        tk.Button(frame, text="Cerrar", command=top.destroy, font=("Arial", 12), bg="#333", fg="white").pack(pady=10)
+        
+    def mostrar_estadisticas(self):
+        
+        top = tk.Toplevel(self.root)
+        top.title("Estadísticas Generales")
+        top.geometry("800x600")
+        stats = Estadisticas(self)
+        reporte = stats.generar_reporte_completo()
+        main_frame = tk.Frame(top)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        canvas = tk.Canvas(main_frame)
+        scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        
+        scrollbar.pack(side="right", fill="y")
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        tk.Label(scrollable_frame, text="ESTADÍSTICAS GENERALES", font=("Arial", 16, "bold")).pack(pady=20)
+        stats_frame = tk.Frame(scrollable_frame)
+        stats_frame.pack(fill=tk.BOTH, padx=20, pady=10)
+
+        
+        tk.Label(stats_frame, text=f"Torneos realizados: {reporte['torneos_realizados']}", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
+        tk.Label(stats_frame, text=f"Héroes creados: {reporte['heroes_creados']}", font=("Arial", 12)).grid(row=1, column=0, sticky="w", pady=5)
+        tk.Label(stats_frame, text=f"Villanos creados: {reporte['villanos_creados']}", font=("Arial", 12)).grid(row=2, column=0, sticky="w", pady=5)
+        tk.Label(stats_frame, text="HÉROES DESTACADOS", font=("Arial", 14, "bold"), fg="blue").grid(row=3, column=0, sticky="w", pady=10)
+        tk.Label(stats_frame, text=f"Con más victorias: {reporte['heroe_mas_ganador']}", font=("Arial", 12)).grid(row=4, column=0, sticky="w", pady=3)
+        tk.Label(stats_frame, text=f"Con más derrotas: {reporte['heroe_mas_perdedor']}", font=("Arial", 12)).grid(row=5, column=0, sticky="w", pady=3)
+        tk.Label(stats_frame, text=f"Con más participaciones: {reporte['heroe_mas_participante']}", font=("Arial", 12)).grid(row=6, column=0, sticky="w", pady=3)
+        tk.Label(stats_frame, text="VILLANOS DESTACADOS", font=("Arial", 14, "bold"), fg="red").grid(row=7, column=0, sticky="w", pady=10)
+        tk.Label(stats_frame, text=f"Con más victorias: {reporte['villano_mas_ganador']}", font=("Arial", 12)).grid(row=8, column=0, sticky="w", pady=3)
+        tk.Label(stats_frame, text=f"Con más derrotas: {reporte['villano_mas_perdedor']}", font=("Arial", 12)).grid(row=9, column=0, sticky="w", pady=3)
+        tk.Label(stats_frame, text=f"Con más participaciones: {reporte['villano_mas_participante']}", font=("Arial", 12)).grid(row=10, column=0, sticky="w", pady=3)
+        tk.Button(scrollable_frame, text="CERRAR", command=top.destroy, bg="#333", fg="white", font=("Arial", 12), padx=20).pack(pady=20)
+
 
 #===================#
 #Nombre: Inicio_Sesion
