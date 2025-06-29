@@ -871,51 +871,6 @@ class SistemaTorneos:
             messagebox.showwarning("Advertencia", "No hay torneos creados")
             return
 
-        top = tk.Toplevel(self.root)
-        top.title("Seleccionar Torneo")
-        top.geometry("600x400")
-        tk.Label(top, text="SELECCIONE UN TORNEO", font=("Arial", 14, "bold")).pack(pady=10)
-        frame_lista = tk.Frame(top)
-        frame_lista.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
-        scrollbar = tk.Scrollbar(frame_lista)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        lista_torneos = tk.Listbox(
-            frame_lista, yscrollcommand=scrollbar.set,
-            font=("Arial", 12), selectmode=tk.SINGLE
-        )
-        lista_torneos.pack(fill=tk.BOTH, expand=True)
-        scrollbar.config(command=lista_torneos.yview)
-        for torneo in self.torneos:
-            lista_torneos.insert(tk.END, f"{torneo.nombre} - {torneo.fecha}")
-        btn_frame = tk.Frame(top)
-        btn_frame.pack(pady=20)
-
-        def iniciar():
-            seleccion = lista_torneos.curselection()
-            if not seleccion:
-                messagebox.showwarning("Advertencia", "Selecciona un torneo primero")
-                return
-            idx = seleccion[0]
-            torneo = self.torneos[idx]
-            top.destroy()
-            self._jugar_torneo_interactivo(torneo)
-
-        tk.Button(
-            btn_frame, text="INICIAR TORNEO", command=iniciar,
-            bg="#4CAF50", fg="white", font=("Arial", 12, "bold"),
-            padx=20, pady=10
-        ).pack(side=tk.LEFT, padx=10)
-        tk.Button(
-            btn_frame, text="CANCELAR", command=top.destroy,
-            bg="#f44336", fg="white", font=("Arial", 12),
-            padx=20, pady=10
-        ).pack(side=tk.LEFT, padx=10)
-
-    def jugar_torneo(self):
-        if not self.torneos:
-            messagebox.showwarning("Advertencia", "No hay torneos creados")
-            return
-
         # Selección de torneo
         top = tk.Toplevel(self.root)
         top.title("Seleccionar Torneo")
