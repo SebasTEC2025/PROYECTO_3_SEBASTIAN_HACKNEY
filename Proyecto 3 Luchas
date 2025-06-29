@@ -40,6 +40,30 @@ class Luchador:
             oponente.victorias += 1
             return (False, f"{oponente.alter_ego} derrotó a {self.alter_ego}!")
 
+#===================#
+#Nombre: CreadorPersonajes
+#===================#
+#atributos:
+#root (ventana)
+#callback_guardar
+#tipo_var
+#genero_var
+#nombre_real_var
+#nombre_real_var
+#alter_ego_var
+#stats_vars
+#total_var
+#icono_path
+#===================#
+#métodos:
+#crear_interfaz()
+#actualizar_total()
+#seleccionar_icono()
+#seleccionar_icono_callback()
+#guardar_personaje()
+#nombre_existe(alter_ego)
+#===================# 
+
 class CreadorPersonajes:
     def __init__(self, root, callback_guardar):
         self.root = root
