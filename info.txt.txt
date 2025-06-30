@@ -1,0 +1,7 @@
+a.	Nombre del curso: Taller de Programación
+b.	Número de semestre y año lectivo: Semestre I, año 2025
+c.	Nombre del Estudiante: Sebastián Sanchez y Hackney Aguilar
+d.	Número de carné del estudiante: 2025108378 y 2021441946
+e.	Número del proyecto programado: 3
+f.	Fecha de entrega: 29/06/2025
+g.	Estatus de la entrega (debe ser CONGRUENTE con la solución entregada): |Buena|
