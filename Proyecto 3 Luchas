@@ -1183,7 +1183,7 @@ class Inicio_Sesion:
         """Crea el archivo de contraseñas con usuarios por defecto."""
         with open("contraseñas.txt", "w", encoding="utf-8") as f:
             f.write("Sebas,Seb,1234\n")
-            f.write("Hackney Hac,1234\n")
+            f.write("Hackney,Hac,1234\n")
             f.write("admin,admin,admin\n")
     
     def crear_widgets_login(self):
